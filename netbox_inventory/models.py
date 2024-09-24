@@ -341,13 +341,23 @@ class Asset(NetBoxModel, ImageAttachmentsMixin):
         old_status = get_prechange_field(self, 'status')
         stored_status = get_status_for('stored')
         used_status = get_status_for('used')
+        spare_status = get_status_for('spare')
+        installed_status = get_status_for('installed')
+        checking_status = get_status_for('checking')
+
         if old_status != self.status:
             # status has also been changed manually, don't change it automatically
             return
-        if used_status and new_hw and not old_hw:
-            self.status = used_status
-        elif stored_status and not new_hw and old_hw:
-            self.status = stored_status
+        if installed_status and new_hw and not old_hw:
+            self.status = installed_status
+        elif checking_status and not new_hw and old_hw:
+            self.status = checking_status
+        elif spare_status and not new_hw and old_hw:
+            self.status = spare_status
+        #if used_status and new_hw and not old_hw:
+        #    self.status = used_status
+        #elif stored_status and not new_hw and old_hw:
+        #    self.status = stored_status
 
     def update_hardware_used(self, clear_old_hw=True):
         """ If assigning as device, module or inventoryitem set serial and
