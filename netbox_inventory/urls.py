@@ -5,7 +5,7 @@ from utilities.urls import get_model_urls
 from . import models, views
 
 
-urlpatterns = [
+urlpatterns = (
 
     # Assets
     path('assets/', views.AssetListView.as_view(), name='asset_list'),
@@ -84,4 +84,4 @@ urlpatterns = [
     path('inventory-item-groups/<int:pk>/delete/', views.InventoryItemGroupDeleteView.as_view(), name='inventoryitemgroup_delete'),
     path('inventory-item-groups/<int:pk>/changelog/', ObjectChangeLogView.as_view(), name='inventoryitemgroup_changelog', kwargs={'model': models.InventoryItemGroup}),
 
-]
+)
