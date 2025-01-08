@@ -3,7 +3,7 @@ from django.db.models import Q
 import django_filters
 
 from dcim.filtersets import DeviceFilterSet, InventoryItemFilterSet, ModuleFilterSet
-from dcim.models import Manufacturer, Device, DeviceType, Module, ModuleType, InventoryItem, Site, Location
+from dcim.models import Manufacturer, Device, DeviceType, DeviceRole, Module, ModuleType, InventoryItem, InventoryItemRole, Rack, RackRole, RackType, Site, Location
 from netbox.filtersets import NetBoxModelFilterSet
 from utilities import filters
 from tenancy.filtersets import ContactModelFilterSet
@@ -53,6 +53,16 @@ class AssetFilterSet(NetBoxModelFilterSet):
         field_name='device_type__model',
         lookup_expr='icontains',
         label='Device type (model)',
+    )
+    device_role_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='device__role',
+        queryset=DeviceRole.objects.all(),
+        label='Device role (ID)',
+    )
+    device_role = filters.MultiValueCharFilter(
+        field_name='device__role__slug',
+        lookup_expr='iexact',
+        label='Device role (slug)',
     )
     module_id = django_filters.ModelMultipleChoiceFilter(
         field_name='module',
@@ -104,6 +114,51 @@ class AssetFilterSet(NetBoxModelFilterSet):
         field_name='inventoryitem_type__inventoryitem_group__name',
         lookup_expr='icontains',
         label='Inventory item group (name)',
+    )
+    inventoryitem_role_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='inventoryitem__role',
+        queryset=InventoryItemRole.objects.all(),
+        label='Inventory item role (ID)',
+    )
+    inventoryitem_role = filters.MultiValueCharFilter(
+        field_name='inventoryitem__role__slug',
+        lookup_expr='iexact',
+        label='Inventory item role (slug)',
+    )
+    rack = filters.MultiValueCharFilter(
+        field_name='rack__name',
+        lookup_expr='iexact',
+        label='Rack (name)',
+    )
+    rack_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='rack',
+        queryset=Rack.objects.all(),
+        label='Rack (ID)',
+    )
+    rack_type_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='rack_type',
+        queryset=RackType.objects.all(),
+        label='Rack type (ID)',
+    )
+    rack_type = filters.MultiValueCharFilter(
+        field_name='rack_type__slug',
+        lookup_expr='iexact',
+        label='Rack type (slug)',
+    )
+    rack_type_model = filters.MultiValueCharFilter(
+        field_name='rack_type__model',
+        lookup_expr='icontains',
+        label='Rack type (model)',
+    )
+    rack_role_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='rack__role',
+        queryset=RackRole.objects.all(),
+        label='Rack role (ID)',
+    )
+    rack_role = filters.MultiValueCharFilter(
+        field_name='rack__role__slug',
+        lookup_expr='iexact',
+        label='Rack role (slug)',
     )
     is_assigned = django_filters.BooleanFilter(
         method='filter_is_assigned',
@@ -262,6 +317,10 @@ class AssetFilterSet(NetBoxModelFilterSet):
             | Q(device_type__model__icontains=value)
             | Q(module_type__model__icontains=value)
             | Q(inventoryitem_type__model__icontains=value)
+            | Q(rack_type__model__icontains=value)
+            | Q(device__name__icontains=value)
+            | Q(inventoryitem__name__icontains=value)
+            | Q(rack__name__icontains=value)
             | Q(delivery__name__icontains=value)
             | Q(purchase__name__icontains=value)
             | Q(purchase__supplier__name__icontains=value)

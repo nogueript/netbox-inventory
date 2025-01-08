@@ -5,12 +5,11 @@ A [Netbox](https://github.com/netbox-community/netbox) plugin for hardware inven
 ## Features
 
 Keep track of your hardware, whether it is installed or in storage. You can
-define assets that represent hardware that can be used as a device, module or
-inventory item in NetBox.
+define assets that represent hardware that can be used as a device, module, inventory item or rack in NetBox.
 
 Each asset can have a storage location defined, when not in use. You can assign
 an asset to a device, module or inventory item. The plugin can keep serial number
-and asset tag between asset and device, module or inventory item in sync if
+and asset tag between asset and device, module, inventory item or rack in sync if
 enabled in settings.
 
 On Site and Location detail views there is a new tab Assets that can show assets
@@ -56,13 +55,14 @@ The idea is that an external system uses some assets stored in netbox_inventory,
 
 ## Compatibility
 
-This plugin requires netbox version 4.0 to work. Older versions of the plugin
+This plugin requires netbox version 4.1 to work. Older versions of the plugin
 support older netbox version as per table below:
 
 | NetBox Version | Plugin Version |
 |----------------|----------------|
 |       3.7      |      1.6.x     |
 |       4.0      |      2.0.x     |
+|       4.1      |  2.1.x,2.2.x   |
 
 ## Installing
 
@@ -142,14 +142,17 @@ PLUGINS_CONFIG = {
 
 | Setting | Default value | Description |
 |---------|---------------|-------------|
-| `top_level_menu` | `True`| Add netbox-inventory to the top level of netbox navigation menu under Inventory heading. If set to False the plugin will add a menu item under the Plugins menu item. This setting is only valid under netbox v3.4 and newer.
+| `top_level_menu` | `True`| Add netbox-inventory to the top level of netbox navigation menu under Inventory heading. If set to False the plugin will add a menu item under the Plugins menu item.
 | `used_status_name` | `'used'`| Status that indicates asset is in use. See "Automatic management of asset status" below for more info on this setting.
+| `used_additional_status_names` | `[]` (empty list) | List of statuses that are also considered as in use.
 | `stored_status_name` | `'stored'`| Status that indicates asset is in storage. See "Automatic management of asset status" below for more info on this setting.
-| `sync_hardware_serial_asset_tag` | `False` | When an asset is assigned or unassigned to a device, module or inventory item, update its serial number and asset tag to be in sync with the asset? |
+| `stored_additional_status_names` | `['retired',]`| List of statuses that are also considered as not in use by various filters.
+| `sync_hardware_serial_asset_tag` | `False` | When an asset is assigned or unassigned to a device, module or inventory item, update its serial number and asset tag to be in sync with the asset? For device and module device type or module type is also updated to match asset. For inventory items, manufacturer and part ID are updated to match asset. |
 | `asset_import_create_purchase` | `False` | When importing assets, automatically create any given purchase, delivery or supplier if it doesn't exist already |
 | `asset_import_create_device_type` | `False` | When importing a device type asset, automatically create manufacturer and/or device type if it doesn't exist |
-| `asset_import_create_module_type` | `False` | When importing a module type asset, automatically create manufacturer and/or device type if it doesn't exist |
-| `asset_import_create_inventoryitem_type` | `False` | When importing an inventory type asset, automatically create manufacturer and/or device type if it doesn't exist |
+| `asset_import_create_module_type` | `False` | When importing a module type asset, automatically create manufacturer and/or module type if it doesn't exist |
+| `asset_import_create_inventoryitem_type` | `False` | When importing an inventory type asset, automatically create manufacturer and/or inventory item type if it doesn't exist |
+| `asset_import_create_rack_type` | `False` | When importing a rack type asset, automatically create manufacturer and/or rack type if it doesn't exist |
 | `asset_import_create_tenant` | `False` | When importing an asset, with owner or tenant, automatically create tenant if it doesn't exist |
 | `asset_disable_editing_fields_for_tags` | `{}` | A dictionary of tags and fields that should be disabled for editing. This is useful if you want to prevent editing of certain fields for certain assets. The dictionary is in the form of `{tag: [field1, field2]}`. Example: `{'no-edit': ['serial_number', 'asset_tag']}`. This only affects the UI, the API can still be used to edit the fields. |
 | `asset_disable_deletion_for_tags` | `[]` | List of tags that will disable deletion of assets. This only affects the UI, not the API. |
@@ -167,6 +170,43 @@ FIELD_CHOICES = {
     ),
 }
 ```
+
+If you add more statuses, you should also adjust `used_additional_status_names` and `stored_additional_status_names` settings.
+
+## Common questions
+
+### I'd like to attach documents to asset, purchase, supplier, etc
+
+Netbox inventory supports limited file attachments for its various models. You can add images to assets, inventory item types and that is it.
+
+If you would like to attach various other documents to purchases, deliveries, suppliers... first ask yourself if you really need those documents in netbox or could you use some other tool that is possibly in use in your organization. Netbox itself is not great at managing documents. If you decide to manage documents outside netbox, you can porobably still achieve some sort of integration by using [custom links feature](https://netboxlabs.com/docs/netbox/en/stable/customization/custom-links/) to link from a netbox inventory object directly to a document in your document system.
+
+If you really want to store document in netbox itself, then consider using [netbox_attachments plugin](https://github.com/Kani999/netbox-attachments). Here is a sample netbox configuration that will allow adding documents to suppliers, purchases and deliveries:
+
+```python
+PLUGINS = [
+    'netbox_inventory',
+    'netbox_attachments',
+]
+
+PLUGINS_CONFIG = {
+    'netbox_attachments': {
+        'apps': ['netbox_inventory',],
+        'display_setting': {
+            "netbox_inventory.supplier": "left_page",
+            "netbox_inventory.purchase": "full_width_page",
+            "netbox_inventory.delivery": "righ_page",
+            "netbox_inventory.asset": "hidden",
+            "netbox_inventory.inventoryitemtype": "hidden",
+            "netbox_inventory.inventoryitemgroup": "hidden",
+        },
+    },
+}
+```
+
+Here is what it looks like when viewing a purchase:
+
+![Example using netbox_attachments plugin](docs/img/netbox_attachments_example.png)
 
 ## Models
 

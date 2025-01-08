@@ -3,7 +3,8 @@ from django.db.models import Q
 from django.core.exceptions import ImproperlyConfigured
 from django.db.models.signals import pre_save
 
-from dcim.models import Device, Module, InventoryItem
+from dcim.models import Device, Module, InventoryItem, Rack
+from netbox.plugins import get_plugin_config
 from .choices import AssetStatusChoices
 
 
@@ -25,9 +26,7 @@ def get_prechange_field(obj, field_name):
 
 
 def get_plugin_setting(setting_name):
-    plugin_settings = settings.PLUGINS_CONFIG['netbox_inventory']
-    assert setting_name in plugin_settings, f'Setting {setting_name} not supported'
-    return plugin_settings[setting_name]
+    return get_plugin_config('netbox_inventory', setting_name)
 
 
 def get_status_for(status):
@@ -36,9 +35,24 @@ def get_status_for(status):
         return None
     if status_name not in dict(AssetStatusChoices):
         raise ImproperlyConfigured(
-            f'Configuration defines status {status_name}, but not defined in AssetStatusChoices'
+            f'netbox_inventory plugin configuration defines status {status_name}, but it is not defined in FIELD_CHOICES["netbox_inventory.Asset.status"]'
         )
     return status_name
+
+
+def get_all_statuses_for(status):
+    status_names = get_plugin_setting(status + '_additional_status_names')
+    status_names = set(status_names)
+    # add primary status
+    if primary_status := get_status_for(status):
+        status_names.add(primary_status)
+    if len(status_names) < 1:
+        return None
+    if extra_statuses := status_names.difference(set(dict(AssetStatusChoices))):
+        raise ImproperlyConfigured(
+            f'netbox_inventory plugin configuration defines statuses {extra_statuses}, but these are not defined in FIELD_CHOICES["netbox_inventory.Asset.status"]'
+        )
+    return list(status_names)
 
 
 def get_tags_that_protect_asset_from_deletion():
@@ -78,17 +92,19 @@ def asset_clear_old_hw(old_hw):
     pre_save.disconnect(prevent_update_serial_asset_tag, sender=Device)
     pre_save.disconnect(prevent_update_serial_asset_tag, sender=Module)
     pre_save.disconnect(prevent_update_serial_asset_tag, sender=InventoryItem)
+    pre_save.disconnect(prevent_update_serial_asset_tag, sender=Rack)
     old_hw.serial = ''
     old_hw.asset_tag = None
     old_hw.save()
     pre_save.connect(prevent_update_serial_asset_tag, sender=Device)
     pre_save.connect(prevent_update_serial_asset_tag, sender=Module)
     pre_save.connect(prevent_update_serial_asset_tag, sender=InventoryItem)
+    pre_save.connect(prevent_update_serial_asset_tag, sender=Rack)
 
 
 def asset_set_new_hw(asset, hw):
     """
-    Asset was assigned to hardware (device/module/inventory item) and we want to
+    Asset was assigned to hardware (device/module/inventory item/rack) and we want to
     sync some field values from asset to hardware
     Validation if asset can be assigned to hw should be done before calling this function.
     """
@@ -103,6 +119,13 @@ def asset_set_new_hw(asset, hw):
     if hw.asset_tag != new_asset_tag:
         hw.asset_tag = new_asset_tag
         hw_save = True
+    # handle changing of model (<kind>_type)
+    if asset.kind in ['device', 'module', 'rack']:
+        asset_type = getattr(asset, asset.kind+'_type')
+        hw_type = getattr(hw, asset.kind+'_type')
+        if asset_type != hw_type:
+            setattr(hw, asset.kind+'_type', asset_type)
+            hw_save = True
     # for inventory items also set manufacturer and part_number
     if asset.inventoryitem_type:
         if hw.manufacturer != asset.inventoryitem_type.manufacturer:
@@ -131,13 +154,20 @@ def query_located(queryset, field_name, values, assets_shown='all'):
         * queryset - queryset of Asset model
         * field_name - 'site' or 'location' or 'rack'
         * values - list of PKs of location types to filter on
-        * assets_shown - 'all' or 'installd' or 'stored'
+        * assets_shown - 'all' or 'installed' or 'stored'
     """
+    if field_name == 'rack':
+        q_installed = Q(**{f'rack__in':values})
+    else:
+        q_installed = Q(**{f'rack__{field_name}__in':values})
     q_installed = (
+        q_installed|
         Q(**{f'device__{field_name}__in':values})|
         Q(**{f'module__device__{field_name}__in':values})|
         Q(**{f'inventoryitem__device__{field_name}__in':values})
     )
+
+    # Q expressions for stored
     if field_name == 'rack':
         # storage in rack is not supported
         # generate Q() that matches none
@@ -145,13 +175,14 @@ def query_located(queryset, field_name, values, assets_shown='all'):
     elif field_name == 'location':
         q_stored = (
             Q(**{f'storage_location__in':values})&
-            Q(status=get_status_for('stored'))
+            Q(status__in=get_all_statuses_for('stored'))
         )
-    else:
+    elif field_name == 'site':
         q_stored = (
-            Q(**{f'storage_location__{field_name}__in':values})&
-            Q(status=get_status_for('stored'))
+            Q(**{f'storage_location__site__in':values})&
+            Q(status__in=get_all_statuses_for('stored'))
         )
+
     if assets_shown == 'all':
         q = q_installed | q_stored
     elif assets_shown == 'installed':
