@@ -1,4 +1,5 @@
 from netbox.plugins import PluginConfig
+
 from .version import __version__
 
 
@@ -14,12 +15,14 @@ class NetBoxInventoryConfig(PluginConfig):
     default_settings = {
         'top_level_menu': True,
         'used_status_name': 'used',
-        'used_additional_status_names': list(),
+        'used_additional_status_names': [],
         'stored_status_name': 'stored',
         'installed_status_name': 'installed',
         'spare_status_name': 'spare',
         'checking_status_name': 'checking',
-        'stored_additional_status_names': ['retired',],
+        'stored_additional_status_names': [
+            'retired',
+        ],
         'sync_hardware_serial_asset_tag': False,
         'asset_import_create_purchase': False,
         'asset_import_create_device_type': False,
@@ -37,6 +40,7 @@ class NetBoxInventoryConfig(PluginConfig):
 
     def ready(self):
         super().ready()
-        import netbox_inventory.signals
+        from . import signals  # noqa: F401
+
 
 config = NetBoxInventoryConfig

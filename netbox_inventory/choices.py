@@ -1,5 +1,10 @@
 from utilities.choices import ChoiceSet
 
+#
+# Assets
+#
+
+
 class AssetStatusChoices(ChoiceSet):
     key = 'Asset.status'
 
@@ -17,6 +22,11 @@ class HardwareKindChoices(ChoiceSet):
         ('inventoryitem', 'Inventory Item'),
         ('rack', 'Rack'),
     ]
+
+
+#
+# Deliveries
+#
 
 
 class PurchaseStatusChoices(ChoiceSet):

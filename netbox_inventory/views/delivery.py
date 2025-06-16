@@ -1,6 +1,7 @@
 from netbox.views import generic
 from utilities.query import count_related
 from utilities.views import register_model_view
+
 from .. import filtersets, forms, models, tables
 
 __all__ = (
@@ -63,4 +64,5 @@ class DeliveryBulkEditView(generic.BulkEditView):
 @register_model_view(models.Delivery, 'bulk_delete', path='delete', detail=False)
 class DeliveryBulkDeleteView(generic.BulkDeleteView):
     queryset = models.Delivery.objects.all()
+    filterset = filtersets.DeliveryFilterSet
     table = tables.DeliveryTable

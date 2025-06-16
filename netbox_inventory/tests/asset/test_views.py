@@ -1,20 +1,19 @@
 from django.test import override_settings
 
 from core.models import ObjectType
-from dcim.models import Manufacturer, DeviceType, DeviceRole, Device, Site
+from dcim.models import Device, DeviceRole, DeviceType, Manufacturer, Site
 from users.models import ObjectPermission
-from utilities.testing import post_data, ViewTestCases
+from utilities.testing import ViewTestCases, post_data
 
-from netbox_inventory.tests.custom import ModelViewTestCase
-from netbox_inventory.models import Asset, Delivery, Purchase, Supplier
 from ..settings import CONFIG_ALLOW_CREATE_DEVICE_TYPE
+from netbox_inventory.models import Asset, Delivery, Purchase, Supplier
+from netbox_inventory.tests.custom import ModelViewTestCase
 
 
 class AssetTestCase(
     ModelViewTestCase,
     ViewTestCases.PrimaryObjectViewTestCase,
 ):
-
     model = Asset
 
     @classmethod
@@ -33,15 +32,15 @@ class AssetTestCase(
             supplier=supplier1,
             status='closed',
         )
-        delivery1 = Delivery.objects.create(
+        Delivery.objects.create(
             name='the_delivery',
             purchase=purchase1,
         )
-        delivery2 = Delivery.objects.create(
+        Delivery.objects.create(
             name='the_delivery',
             purchase=purchase2,
         )
-        site1 = Site.objects.create(
+        Site.objects.create(
             name='site1',
             slug='site1',
             status='active',
@@ -56,7 +55,7 @@ class AssetTestCase(
             manufacturer=manufacturer1,
             u_height=1,
         )
-        role1 = DeviceRole.objects.create(
+        DeviceRole.objects.create(
             name='role1',
             slug='role1',
             color='9e9e9e',
@@ -100,11 +99,9 @@ class AssetTestCase(
 
     @override_settings(EXEMPT_VIEW_PERMISSIONS=['*'])
     def test_assign_device_from_asset(self):
-
         # Assign unconstrained permission
         obj_perm = ObjectPermission(
-            name='test-device-assign permission',
-            actions=['add', 'change']
+            name='test-device-assign permission', actions=['add', 'change']
         )
         obj_perm.save()
         obj_perm.users.add(self.user)
@@ -118,10 +115,10 @@ class AssetTestCase(
         )
         device = Device.objects.create(
             name='test-device-assign',
-            role = DeviceRole.objects.first(),
+            role=DeviceRole.objects.first(),
             device_type=asset.device_type,
-            site = Site.objects.first(),
-            status = 'active',
+            site=Site.objects.first(),
+            status='active',
         )
 
         form_data = {
@@ -155,8 +152,7 @@ class AssetTestCase(
         """
         # Assign unconstrained permission
         obj_perm = ObjectPermission(
-            name='test-asset permission',
-            actions=['add', 'change']
+            name='test-asset permission', actions=['add', 'change']
         )
         obj_perm.save()
         obj_perm.users.add(self.user)
@@ -201,6 +197,7 @@ class AssetBulkAddTestCase(
     """
     test for /plugins/inventory/assets/bulk-add/
     """
+
     model = Asset
 
     @classmethod
