@@ -32,6 +32,9 @@ __all__ = (
 )
 
 
+LOOKUP_PATHS = list[tuple[type[models.Model], str | None]]
+
+
 class BaseFlow(NamedModel):
     """
     A `BaseFlow` provides the foundation for all audit flow models and provides the
@@ -232,7 +235,7 @@ class AuditFlowPageAssignment(
         return objectchange
 
     @staticmethod
-    def _get_lookup_paths(model: models.Model) -> list[tuple[models.Model, str | None]]:
+    def _get_lookup_paths(model: type[models.Model]) -> LOOKUP_PATHS:
         """
         Get a list of location lookup paths for `model`.
 
@@ -251,7 +254,7 @@ class AuditFlowPageAssignment(
         :returns: A tuple of the related model and its required lookup suffix. The list
             is returned from the most specific to the least specific field.
         """
-        paths = [(model, None)]
+        paths: LOOKUP_PATHS = [(model, None)]
         if model == Location:
             paths.append((Rack, 'location'))
         elif model == Site:
@@ -352,7 +355,8 @@ class AuditTrail(
 
     object_type = models.ForeignKey(
         to=ContentType,
-        on_delete=models.CASCADE,
+        related_name='+',
+        on_delete=models.PROTECT,
     )
     object_id = models.PositiveBigIntegerField()
     object = GenericForeignKey(
@@ -371,6 +375,13 @@ class AuditTrail(
     # AuditTrailTable. Reusing the logic of the ObjectChange model and
     # ChangeLoggingMixin reduces the logic of this model because the request-response
     # cycle doesn't need to maintain who actually created the object.
+    #
+    # NOTE: A known limitation of this code is that related ObjectChange objects will be
+    #       deleted if the audit trail itself is deleted. This is because a
+    #       GenericRelation enforces a CASCADE deletion, which, according to Django's
+    #       documentation, cannot be changed. However, using a GenericRelation greatly
+    #       simplifies the code compared to using nested queries, especially for
+    #       prefetching.
     object_changes = GenericRelation(
         ObjectChange,
         content_type_field='changed_object_type',
