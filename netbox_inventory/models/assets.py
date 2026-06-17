@@ -146,6 +146,19 @@ class Asset(NamedModel, ImageAttachmentsMixin):
     )
 
     #
+    # Asset role fields
+    #
+    role = models.ForeignKey(
+            to='netbox_inventory.AssetRole',
+            on_delete=models.SET_NULL,
+            related_name='assets',
+            blank=True,
+            null=True,
+            verbose_name='Role',
+            help_text='Functional role of this asset',
+    )
+
+    #
     # hardware type fields
     #
     device_type = models.ForeignKey(
@@ -515,10 +528,6 @@ class Asset(NamedModel, ImageAttachmentsMixin):
             self.status = checking_status
         elif spare_status and not new_hw and old_hw:
             self.status = spare_status
-#        if used_status and new_hw and not old_hw:
-#            self.status = used_status
-#        elif stored_status and not new_hw and old_hw:
-#            self.status = stored_status
 
     def update_hardware_used(self, clear_old_hw=True):
         """

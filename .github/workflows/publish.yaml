@@ -2,12 +2,28 @@
 name: Publish Python package to PyPI
 
 on:
-  release:
-    types:
-      - published
+  push:
+    tags:
+      - 'v*'
 
 jobs:
-  deploy:
+  validate:
+    name: Validate version strings match
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@main
+      - name: Setup Python
+        uses: actions/setup-python@main
+        with:
+          python-version: "3.12"
+      - name: Check versions
+        run: python scripts/version-check.py "${{ github.ref_name }}"
+
+  publish:
+    name: Publish to PyPI
+    needs: validate
+    if: github.repository == 'ArnesSI/netbox-inventory'
     runs-on: ubuntu-latest
     environment: release
     permissions:
@@ -29,3 +45,22 @@ jobs:
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           verbose: true
+
+  create-release:
+    name: Create GitHub Release
+    needs: publish
+    if: github.repository == 'ArnesSI/netbox-inventory'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@main
+      - name: Create draft release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "${{ github.ref_name }}" \
+            --title "${{ github.ref_name }}" \
+            --generate-notes \
+            --draft

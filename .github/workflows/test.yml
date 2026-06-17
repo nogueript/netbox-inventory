@@ -10,7 +10,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        netbox-version: ["v4.5.2", "v4.5.4", "v4.5.5"]
+        netbox-version: ["v4.6.0"]
     services:
       redis:
         image: redis
@@ -41,7 +41,7 @@ jobs:
           python-version: "3.12"
 
       - name: Checkout netbox ${{ matrix.netbox-version }}
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: "netbox-community/netbox"
           ref: ${{ matrix.netbox-version }}
@@ -55,7 +55,7 @@ jobs:
       - name: Install dependencies & set up configuration
         working-directory: netbox
         run: |
-          ln -s $(pwd)/../netbox-inventory/testing/configuration.testing.py netbox/netbox/configuration.py
+          ln -s $(pwd)/../netbox-inventory/testing/configuration_testing.py netbox/netbox/configuration.py
           python -m pip install --upgrade pip
           python -m pip install tblib
           pip install -r requirements.txt -U
