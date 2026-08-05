@@ -770,7 +770,7 @@ register_table_column(asset_count, 'assets', DeviceTypeTable)
 asset_count = columns.LinkedCountColumn(
     viewname='plugins:netbox_inventory:asset_list',
     url_params={'module_type_id': 'pk'},
-    verbose_name=_('AsseAsset Countts'),
+    verbose_name=_('Asset Count'),
     accessor='assets__count',
     orderable=False,
 )
