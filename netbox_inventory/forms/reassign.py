@@ -43,7 +43,7 @@ class AssetReassignMixin(forms.Form):
     )
     asset_status = forms.ChoiceField(
         choices=AssetStatusChoices,
-        initial=get_status_for('stored'),
+        initial=get_status_for('checking'),
         label='Status',
         help_text='Status to set to existing asset that is being unassigned',
     )

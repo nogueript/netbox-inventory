@@ -48,13 +48,13 @@ def prevent_update_serial_asset_tag(instance, **kwargs):
 def free_assigned_asset(instance, **kwargs):
     """
     If a hardware (Device, Module, InventoryItem, Rack) has an Asset assigned and
-    that hardware is deleted, update Asset.status to stored_status.
+    that hardware is deleted, update Asset.status to checking_status.
 
     Netbox handles deletion in a DB transaction, so if deletion failes for any
     reason, this status change will also be reverted.
     """
-    stored_status = get_status_for('stored')
-    if not stored_status:
+    checking_status = get_status_for('checking')
+    if not checking_status:
         return
     try:
         # will raise RelatedObjectDoesNotExist if not set
@@ -62,12 +62,12 @@ def free_assigned_asset(instance, **kwargs):
     except Asset.DoesNotExist:
         return
     asset.snapshot()
-    asset.status = stored_status
+    asset.status = checking_status
     # also unassign that item from asset
     setattr(asset, asset.kind, None)
     asset.full_clean()
     asset.save(clear_old_hw=False)
-    logger.info(f'Asset marked as stored {asset}')
+    logger.info(f'Asset marked as checking {asset}')
 
 
 @receiver(post_save, sender=Delivery)
